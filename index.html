@@ -42,105 +42,109 @@
 		</div>
 		<div id="giftList"></div>
 		<script>
-			const scriptURL = 'https://script.google.com/macros/s/AKfycbzlH9xBb-2r_zyea-bSwwhNsz75QOHVLKB6MpahS8XcHRNSHa9a-lPQruzYwsVsZA3TyQ/exec';
-		    let allItems = [];
+			document.addEventListener("DOMContentLoaded", () => {
+				document.addEventListener('contextmenu', function(e) {e.preventDefault(); });
+				
+				const scriptURL = 'https://script.google.com/macros/s/AKfycbzlH9xBb-2r_zyea-bSwwhNsz75QOHVLKB6MpahS8XcHRNSHa9a-lPQruzYwsVsZA3TyQ/exec';
+				let allItems = [];
 		
-		    async function loadGifts(initial = false) {
-		      try {
-		        const res = await fetch(`${scriptURL}?action=getWishlist&ts=${Date.now()}`);
-		        const newItems = await res.json();
+			    async function loadGifts(initial = false) {
+			      try {
+			        const res = await fetch(`${scriptURL}?action=getWishlist&ts=${Date.now()}`);
+			        const newItems = await res.json();
+			
+			        // Only re-render if data changed
+			        const hasChanged = JSON.stringify(newItems) !== JSON.stringify(allItems);
+			        allItems = newItems;
+			
+			        if (initial || hasChanged) updateDisplay();
+			      } catch (err) {
+			        console.error(err);
+			      }
+			    }
 		
-		        // Only re-render if data changed
-		        const hasChanged = JSON.stringify(newItems) !== JSON.stringify(allItems);
-		        allItems = newItems;
-		
-		        if (initial || hasChanged) updateDisplay();
-		      } catch (err) {
-		        console.error(err);
-		      }
-		    }
-		
-		    function renderGifts(items) {
-		      const container = document.getElementById('giftList');
-		      const existing = container.children.length;
-		      if (!existing) container.style.opacity = '0.3';
-		
-		      requestAnimationFrame(() => {
-		        container.innerHTML = '';
-		        items.forEach(item => {
-		          const card = document.createElement('div');
-		          card.className = 'card';
-		
-		          const priceIcons = item.PriceRange ? item.PriceRange.replace(/\$/g, '💵') : '—';
-		          const statusColor = item.Status.includes('Available') ? 'green' : 'red';
-		          const imageSrc = item.Image;
-		
-		          card.innerHTML = `
-		          <img src="${imageSrc}" alt="${item.ItemName}">
-		            <div style="display: flex; flex-direction: column; justify-content: space-between; gap: 0.7vh !important; margin-top: 1vh; margin-bottom: 1vh;">
-					  <div class="item-name"><a href="${item.Link}" target="_blank">${item.ItemName}</a></div>
-		              <div class="quantity">Quantity: ${item.Quantity || 1}</div>
-		              <div class="price">Price: ${priceIcons}</div>
-		              <div class="status">Status: <b style="color:${statusColor}">${item.Status}</b></div>
-					  <div id="ItemLink"><a href="${item.Link}" target="_blank">View Item</a></div>
-		            </div>
-		            <button ${item.Status.includes('Available') ? '' : 'disabled'}
-		              onclick="reserveItem('${item.ItemName}', this)">Reserve this item</button>
-		          `;
-		          container.appendChild(card);
-		        });
-		        container.style.opacity = '1';
-		      });
-		    }
-		
-		    // === FILTER, SORT & SEARCH ===
-		    document.getElementById('filterStatus').addEventListener('change', updateDisplay);
-		    document.getElementById('sortPrice').addEventListener('change', updateDisplay);
-		    document.getElementById('searchItem').addEventListener('input', updateDisplay);
-		
-		    function updateDisplay() {
-		      let filtered = [...allItems];
-		      const status = document.getElementById('filterStatus').value;
-		      const sort = document.getElementById('sortPrice').value;
-		      const search = document.getElementById('searchItem').value.toLowerCase();
-		
-		      if (status !== 'All') filtered = filtered.filter(i => i.Status.toLowerCase().includes(status.toLowerCase()));
-		      if (search) filtered = filtered.filter(i => i.ItemName.toLowerCase().includes(search));
-		
-		      if (sort !== 'none') {
-		        const val = { '$': 1, '$$': 2, '$$$': 3, '$$$$': 4, '$$$$$': 5 };
-		        filtered.sort((a, b) =>
-		          sort === 'asc'
-		            ? (val[a.PriceRange] || 0) - (val[b.PriceRange] || 0)
-		            : (val[b.PriceRange] || 0) - (val[a.PriceRange] || 0)
-		        );
-		      }
-		
-		      renderGifts(filtered);
-		    }
-		
-		    async function reserveItem(itemName, btn) {
-		      const name = prompt("Please enter your name to reserve this item 💐");
-		      if (!name) return alert("Reservation cancelled.");
-		
-		      btn.disabled = true;
-		      btn.textContent = "Reserving...";
-		
-		      try {
-		        const res = await fetch(`${scriptURL}?action=reserveItem&itemName=${encodeURIComponent(itemName)}&name=${encodeURIComponent(name)}`);
-		        const msg = await res.text();
-		        alert(msg);
-		        await loadGifts(false);
-		      } catch (err) {
-		        console.error(err);
-		        alert("Error reserving item. Please try again.");
-		        btn.disabled = false;
-		        btn.textContent = "Reserve this item";
-		      }
-		    }
-		
-		    loadGifts(true);
-		    setInterval(() => loadGifts(false), 15000);
+			    function renderGifts(items) {
+			      const container = document.getElementById('giftList');
+			      const existing = container.children.length;
+			      if (!existing) container.style.opacity = '0.3';
+			
+			      requestAnimationFrame(() => {
+			        container.innerHTML = '';
+			        items.forEach(item => {
+			          const card = document.createElement('div');
+			          card.className = 'card';
+			
+			          const priceIcons = item.PriceRange ? item.PriceRange.replace(/\$/g, '💵') : '—';
+			          const statusColor = item.Status.includes('Available') ? 'green' : 'red';
+			          const imageSrc = item.Image;
+			
+			          card.innerHTML = `
+			          <img src="${imageSrc}" alt="${item.ItemName}">
+			            <div style="display: flex; flex-direction: column; justify-content: space-between; gap: 0.7vh !important; margin-top: 1vh; margin-bottom: 1vh;">
+						  <div class="item-name"><a href="${item.Link}" target="_blank">${item.ItemName}</a></div>
+			              <div class="quantity">Quantity: ${item.Quantity || 1}</div>
+			              <div class="price">Price: ${priceIcons}</div>
+			              <div class="status">Status: <b style="color:${statusColor}">${item.Status}</b></div>
+						  <div id="ItemLink"><a href="${item.Link}" target="_blank">View Item</a></div>
+			            </div>
+			            <button ${item.Status.includes('Available') ? '' : 'disabled'}
+			              onclick="reserveItem('${item.ItemName}', this)">Reserve this item</button>
+			          `;
+			          container.appendChild(card);
+			        });
+			        container.style.opacity = '1';
+			      });
+			    }
+			
+			    // === FILTER, SORT & SEARCH ===
+			    document.getElementById('filterStatus').addEventListener('change', updateDisplay);
+			    document.getElementById('sortPrice').addEventListener('change', updateDisplay);
+			    document.getElementById('searchItem').addEventListener('input', updateDisplay);
+			
+			    function updateDisplay() {
+			      let filtered = [...allItems];
+			      const status = document.getElementById('filterStatus').value;
+			      const sort = document.getElementById('sortPrice').value;
+			      const search = document.getElementById('searchItem').value.toLowerCase();
+			
+			      if (status !== 'All') filtered = filtered.filter(i => i.Status.toLowerCase().includes(status.toLowerCase()));
+			      if (search) filtered = filtered.filter(i => i.ItemName.toLowerCase().includes(search));
+			
+			      if (sort !== 'none') {
+			        const val = { '$': 1, '$$': 2, '$$$': 3, '$$$$': 4, '$$$$$': 5 };
+			        filtered.sort((a, b) =>
+			          sort === 'asc'
+			            ? (val[a.PriceRange] || 0) - (val[b.PriceRange] || 0)
+			            : (val[b.PriceRange] || 0) - (val[a.PriceRange] || 0)
+			        );
+			      }
+			
+			      renderGifts(filtered);
+			    }
+			
+			    async function reserveItem(itemName, btn) {
+			      const name = prompt("Please enter your name to reserve this item 💐");
+			      if (!name) return alert("Reservation cancelled.");
+			
+			      btn.disabled = true;
+			      btn.textContent = "Reserving...";
+			
+			      try {
+			        const res = await fetch(`${scriptURL}?action=reserveItem&itemName=${encodeURIComponent(itemName)}&name=${encodeURIComponent(name)}`);
+			        const msg = await res.text();
+			        alert(msg);
+			        await loadGifts(false);
+			      } catch (err) {
+			        console.error(err);
+			        alert("Error reserving item. Please try again.");
+			        btn.disabled = false;
+			        btn.textContent = "Reserve this item";
+			      }
+			    }
+			
+			    loadGifts(true);
+			    setInterval(() => loadGifts(false), 15000);
+			});
 		  </script>
 	</body>
 </html>
